@@ -10,7 +10,7 @@ export async function createSupabaseServerClient() {
 
   return createServerClient(
     config.NEXT_PUBLIC_SUPABASE_URL,
-    config.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    config.NEXT_PUBLIC_SUPABASE_KEY,
     {
       cookies: {
         getAll: () => cookieStore.getAll(),

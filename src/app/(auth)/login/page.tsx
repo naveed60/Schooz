@@ -18,36 +18,31 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const error = params.error ? 'Unable to sign in with those details.' : null;
 
   return (
-    <main className='shell'>
-      <h1>Sign in</h1>
-      {message && <p role='status'>{message}</p>}
-      {error && <p role='alert'>{error}</p>}
-      <form action={loginAction}>
-        <input type='hidden' name='next' value={params.next ?? '/platform'} />
-        <label htmlFor='email'>Email</label>
-        <input
-          id='email'
-          name='email'
-          type='email'
-          autoComplete='email'
-          required
-        />
-        <label htmlFor='password'>Password</label>
-        <input
-          id='password'
-          name='password'
-          type='password'
-          autoComplete='current-password'
-          required
-        />
-        <button type='submit'>Sign in</button>
-      </form>
-      <p>
-        <Link href='/register'>Create an account</Link>
-      </p>
-      <p>
-        <Link href='/forgot-password'>Forgot your password?</Link>
-      </p>
+    <main className='auth-page'>
+      <div className='auth-aside'>
+        <Link className='brand brand-light' href='/'><span className='brand-mark'>S</span><span>Schooz</span></Link>
+        <div><p className='eyebrow'>Welcome back</p><h1>Your school,<br /><em>in rhythm.</em></h1><p>Pick up where your team left off.</p></div>
+        <span className='aside-foot'>© 2026 Schooz</span>
+      </div>
+      <div className='auth-content'>
+        <div className='auth-form-wrap'>
+          <Link className='mobile-brand brand' href='/'><span className='brand-mark'>S</span><span>Schooz</span></Link>
+          <p className='eyebrow'>School access</p>
+          <h2>Sign in to your workspace</h2>
+          <p className='form-intro'>Use your school email to continue.</p>
+          {message && <p className='form-message' role='status'>{message}</p>}
+          {error && <p className='form-error' role='alert'>{error}</p>}
+          <form className='auth-form' action={loginAction}>
+            <input type='hidden' name='next' value={params.next ?? '/platform'} />
+            <label htmlFor='email'>School email</label>
+            <input id='email' name='email' type='email' autoComplete='email' placeholder='you@school.edu' required />
+            <div className='label-row'><label htmlFor='password'>Password</label><Link href='/forgot-password'>Forgot password?</Link></div>
+            <input id='password' name='password' type='password' autoComplete='current-password' placeholder='Enter your password' required />
+            <button className='button form-button' type='submit'>Sign in <span aria-hidden='true'>→</span></button>
+          </form>
+          <p className='form-switch'>New to Schooz? <Link href='/register'>Create a school account</Link></p>
+        </div>
+      </div>
     </main>
   );
 }

@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum PlatformRole {
+  ADMIN
+  SUPPORT
+}
+
+enum UserProfileStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
+enum SchoolStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+model UserProfile {
+  id          String            @id @db.Uuid
+  email       String            @unique @db.VarChar(320)
+  firstName   String            @db.VarChar(100)
+  lastName    String            @db.VarChar(100)
+  avatarUrl   String?           @db.VarChar(2048)
+  platformRole PlatformRole?
+  status      UserProfileStatus @default(INVITED)
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime          @updatedAt @db.Timestamptz(3)
+  memberships SchoolMembership[]
+
+  @@map("user_profiles")
+}
+
+model School {
+  id           String            @id @default(uuid()) @db.Uuid
+  name         String            @db.VarChar(160)
+  slug         String            @unique @db.VarChar(80)
+  email        String            @db.VarChar(320)
+  timezone     String            @db.VarChar(64)
+  currencyCode String            @db.Char(3)
+  countryCode  String            @db.Char(2)
+  status       SchoolStatus      @default(PENDING)
+  approvedAt   DateTime?         @db.Timestamptz(3)
+  createdAt    DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime          @updatedAt @db.Timestamptz(3)
+  memberships  SchoolMembership[]
+
+  @@index([status, createdAt])
+  @@map("schools")
+}
+
+model SchoolMembership {
+  id        String           @id @default(uuid()) @db.Uuid
+  schoolId  String           @db.Uuid
+  userId    String           @db.Uuid
+  role      MembershipRole
+  status    MembershipStatus @default(INVITED)
+  joinedAt  DateTime?        @db.Timestamptz(3)
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime         @updatedAt @db.Timestamptz(3)
+  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user      UserProfile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, userId])
+  @@index([userId, status])
+  @@index([schoolId, status])
+  @@map("school_memberships")
+}

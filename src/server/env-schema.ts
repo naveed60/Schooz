@@ -8,6 +8,8 @@ export const serverEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SUPABASE_PRIVATE_STORAGE_BUCKET: z.string().min(1).default('private-files'),
+  SUPABASE_QUEUE_NAME: z.string().min(1).default('schooz_jobs'),
   DATABASE_URL: z.string().min(1).optional(),
   DIRECT_URL: z.string().min(1).optional(),
 });

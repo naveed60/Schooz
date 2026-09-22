@@ -9,7 +9,7 @@ datasource db {
 }
 
 enum PlatformRole {
-  ADMIN
+  PLATFORM_ADMIN
   SUPPORT
 }
 
@@ -20,21 +20,42 @@ enum UserProfileStatus {
 }
 
 enum SchoolStatus {
-  PENDING
-  APPROVED
+  ACTIVE
   SUSPENDED
+  ARCHIVED
 }
 
 enum MembershipRole {
-  OWNER
-  ADMIN
-  STAFF
+  SCHOOL_OWNER
+  SCHOOL_ADMIN
+  TEACHER
+  ACCOUNTANT
+  EXAM_CONTROLLER
+  RECEPTIONIST
+  PARENT
+  STUDENT
 }
 
 enum MembershipStatus {
   ACTIVE
   INVITED
   SUSPENDED
+  REMOVED
+}
+
+enum AuditActorType {
+  USER
+  PLATFORM_ADMIN
+  SYSTEM
+  WORKER
+  ANONYMOUS
+}
+
+enum BackgroundJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
 }
 
 model UserProfile {
@@ -48,6 +69,8 @@ model UserProfile {
   createdAt   DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime          @updatedAt @db.Timestamptz(3)
   memberships SchoolMembership[]
+  auditLogs   AuditLog[]       @relation("AuditActor")
+  jobsCreated BackgroundJob[]  @relation("JobCreator")
 
   @@map("user_profiles")
 }
@@ -60,11 +83,13 @@ model School {
   timezone     String            @db.VarChar(64)
   currencyCode String            @db.Char(3)
   countryCode  String            @db.Char(2)
-  status       SchoolStatus      @default(PENDING)
+  status       SchoolStatus      @default(ACTIVE)
   approvedAt   DateTime?         @db.Timestamptz(3)
   createdAt    DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime          @updatedAt @db.Timestamptz(3)
   memberships  SchoolMembership[]
+  auditLogs    AuditLog[]
+  backgroundJobs BackgroundJob[]
 
   @@index([status, createdAt])
   @@map("schools")
@@ -86,4 +111,51 @@ model SchoolMembership {
   @@index([userId, status])
   @@index([schoolId, status])
   @@map("school_memberships")
+}
+
+model AuditLog {
+  id            String         @id @default(uuid()) @db.Uuid
+  schoolId      String?        @db.Uuid
+  actorUserId   String?        @db.Uuid
+  actorType     AuditActorType
+  action        String         @db.VarChar(120)
+  entityType    String         @db.VarChar(120)
+  entityId      String?        @db.VarChar(160)
+  requestId     String?        @db.VarChar(120)
+  ipAddress     String?        @db.VarChar(64)
+  userAgent     String?        @db.VarChar(512)
+  metadata      Json?
+  previousValues Json?
+  newValues     Json?
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  school        School?        @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  actor         UserProfile?   @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, entityType, entityId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("audit_logs")
+}
+
+model BackgroundJob {
+  id              String              @id @default(uuid()) @db.Uuid
+  schoolId        String?             @db.Uuid
+  type            String              @db.VarChar(120)
+  status          BackgroundJobStatus @default(QUEUED)
+  idempotencyKey  String              @unique @db.VarChar(255)
+  entityType      String?             @db.VarChar(120)
+  entityId        String?             @db.VarChar(160)
+  createdByUserId String?             @db.Uuid
+  resultStorageKey String?            @db.VarChar(512)
+  errorCode       String?             @db.VarChar(120)
+  attempts        Int                 @default(0)
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+  startedAt       DateTime?           @db.Timestamptz(3)
+  completedAt     DateTime?           @db.Timestamptz(3)
+  school          School?             @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  createdBy       UserProfile?        @relation("JobCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, createdAt])
+  @@index([status, createdAt])
+  @@map("background_jobs")
 }

@@ -38,7 +38,7 @@ async function main() {
       timezone: 'UTC',
       currencyCode: 'USD',
       countryCode: 'US',
-      status: SchoolStatus.APPROVED,
+      status: SchoolStatus.ACTIVE,
       approvedAt: new Date('2026-01-01T00:00:00.000Z'),
     },
   });
@@ -49,7 +49,7 @@ async function main() {
     create: {
       schoolId: school.id,
       userId: user.id,
-      role: MembershipRole.OWNER,
+      role: MembershipRole.SCHOOL_OWNER,
       status: MembershipStatus.ACTIVE,
       joinedAt: new Date('2026-01-01T00:00:00.000Z'),
     },

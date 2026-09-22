@@ -44,14 +44,14 @@ describe.skipIf(!integrationEnabled)('database membership constraints', () => {
       });
       await prisma.schoolMembership.createMany({
         data: [
-          { schoolId: schoolAId, userId, role: 'STAFF' },
-          { schoolId: schoolBId, userId, role: 'STAFF' },
+          { schoolId: schoolAId, userId, role: 'TEACHER', status: 'ACTIVE' },
+          { schoolId: schoolBId, userId, role: 'TEACHER', status: 'ACTIVE' },
         ],
       });
 
       await expect(
         prisma.schoolMembership.create({
-          data: { schoolId: schoolAId, userId, role: 'ADMIN' },
+          data: { schoolId: schoolAId, userId, role: 'SCHOOL_ADMIN' },
         })
       ).rejects.toMatchObject({ code: 'P2002' });
     } finally {

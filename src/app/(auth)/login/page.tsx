@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { loginAction } from '@/server/auth/actions';
+import { AuthSubmitButton } from '@/components/auth/submit-button';
 
 type LoginPageProps = {
   searchParams: Promise<{ error?: string; message?: string; next?: string }>;
@@ -15,7 +16,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         : params.message === 'password-updated'
           ? 'Your password was updated. Please sign in.'
           : null;
-  const error = params.error ? 'Unable to sign in with those details.' : null;
+  const error = params.error === 'unverified'
+    ? 'Please confirm your email address before signing in.'
+    : params.error === 'callback'
+      ? 'That confirmation link is invalid or expired. Request a new one and try again.'
+      : params.error === 'invalid'
+        ? 'We couldn’t sign you in. Check your email and password, then try again.'
+        : params.error === 'already-registered'
+          ? 'This email already has an account. Sign in or use Forgot password to regain access.'
+        : null;
 
   return (
     <main className='auth-page'>
@@ -38,7 +47,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <input id='email' name='email' type='email' autoComplete='email' placeholder='you@school.edu' required />
             <div className='label-row'><label htmlFor='password'>Password</label><Link href='/forgot-password'>Forgot password?</Link></div>
             <input id='password' name='password' type='password' autoComplete='current-password' placeholder='Enter your password' required />
-            <button className='button form-button' type='submit'>Sign in <span aria-hidden='true'>→</span></button>
+            <AuthSubmitButton idleLabel='Sign in' pendingLabel='Signing in…' />
           </form>
           <p className='form-switch'>New to Schooz? <Link href='/register'>Create a school account</Link></p>
         </div>

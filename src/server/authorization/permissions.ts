@@ -2,6 +2,7 @@ import type { MembershipRole } from '@prisma/client';
 
 export const PERMISSIONS = {
   SCHOOL_SETTINGS_READ: 'school/settings:read',
+  SCHOOL_SETTINGS_UPDATE: 'school/settings:update',
   SCHOOL_SETTINGS_MANAGE: 'school/settings:manage',
   STUDENTS_READ: 'students:read',
   STUDENTS_MANAGE: 'students:manage',

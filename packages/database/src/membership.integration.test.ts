@@ -25,6 +25,10 @@ describe.skipIf(!integrationEnabled)('database membership constraints', () => {
           {
             id: schoolAId,
             name: 'Integration School A',
+            phone: '+1 555 0101',
+            addressLine1: '1 Integration Way',
+            city: 'Test City',
+            stateOrRegion: 'Test Region',
             slug: `integration-a-${userId.slice(0, 8)}`,
             email: 'a@integration.test',
             timezone: 'UTC',
@@ -34,6 +38,10 @@ describe.skipIf(!integrationEnabled)('database membership constraints', () => {
           {
             id: schoolBId,
             name: 'Integration School B',
+            phone: '+1 555 0102',
+            addressLine1: '2 Integration Way',
+            city: 'Test City',
+            stateOrRegion: 'Test Region',
             slug: `integration-b-${userId.slice(0, 8)}`,
             email: 'b@integration.test',
             timezone: 'UTC',

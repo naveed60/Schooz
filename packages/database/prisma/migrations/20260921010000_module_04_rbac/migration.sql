@@ -1,5 +1,20 @@
 -- Module 04: finalize platform, school status, membership role and membership status enums.
-ALTER TYPE "PlatformRole" RENAME VALUE 'ADMIN' TO 'PLATFORM_ADMIN';
+-- Production databases may have had this enum label changed manually before
+-- the migration was deployed. Normalize either state without failing.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_enum e
+    JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'PlatformRole' AND e.enumlabel = 'ADMIN'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM pg_enum e
+    JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'PlatformRole' AND e.enumlabel = 'PLATFORM_ADMIN'
+  ) THEN
+    ALTER TYPE "PlatformRole" RENAME VALUE 'ADMIN' TO 'PLATFORM_ADMIN';
+  END IF;
+END $$;
 
 -- Rebuild the school status enum so the foundation-only PENDING value is not
 -- left available to application code. Existing pending schools are treated as

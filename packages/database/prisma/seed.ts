@@ -33,6 +33,10 @@ async function main() {
     create: {
       id: demoSchoolId,
       name: 'Demo School',
+      phone: '+1 555 0100',
+      addressLine1: '1 Demo Street',
+      city: 'Demo City',
+      stateOrRegion: 'Demo Region',
       slug: 'demo-school',
       email: 'school@schooz.local',
       timezone: 'UTC',

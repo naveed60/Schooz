@@ -1,0 +1,19 @@
+'use server';
+import { redirect } from 'next/navigation';
+import { contextForSchoolSlug } from '../settings/service';
+import { createAcademicClass, createAcademicYear, createClassSubject, createSection, createSubject, setCurrentAcademicYear, setAcademicClassStatus, setAcademicYearStatus, setSectionStatus, setSubjectStatus } from './service';
+
+const v = (fd: FormData, key: string) => { const value = fd.get(key); return typeof value === 'string' ? value : ''; };
+const go = (slug: string, result: string): never => redirect(`/s/${slug}/academics?${result}` as never);
+async function context(fd: FormData) { return { slug: v(fd, 'schoolSlug'), context: await contextForSchoolSlug(v(fd, 'schoolSlug')) }; }
+
+export async function createAcademicYearAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const x = await context(fd); await createAcademicYear(x.context, { name: v(fd, 'name'), startDate: v(fd, 'startDate'), endDate: v(fd, 'endDate') }); } catch { go(slug, 'error=year'); } go(slug, 'message=year-created'); }
+export async function currentAcademicYearAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const x = await context(fd); await setCurrentAcademicYear(x.context, v(fd, 'id')); } catch { go(slug, 'error=current-year'); } go(slug, 'message=current-year'); }
+export async function toggleAcademicYearAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const x = await context(fd); await setAcademicYearStatus(x.context, v(fd, 'id'), v(fd, 'status') as 'ACTIVE' | 'ARCHIVED'); } catch { go(slug, 'error=year-status'); } go(slug, 'message=year-status'); }
+export async function createAcademicClassAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const x = await context(fd); await createAcademicClass(x.context, { name: v(fd, 'name'), code: v(fd, 'code'), sortOrder: v(fd, 'sortOrder') || undefined }); } catch { go(slug, 'error=class'); } go(slug, 'message=class-created'); }
+export async function toggleAcademicClassAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const x = await context(fd); await setAcademicClassStatus(x.context, v(fd, 'id'), v(fd, 'status') as 'ACTIVE' | 'ARCHIVED'); } catch { go(slug, 'error=class-status'); } go(slug, 'message=class-status'); }
+export async function createSubjectAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const x = await context(fd); await createSubject(x.context, { name: v(fd, 'name'), code: v(fd, 'code') }); } catch { go(slug, 'error=subject'); } go(slug, 'message=subject-created'); }
+export async function toggleSubjectAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const x = await context(fd); await setSubjectStatus(x.context, v(fd, 'id'), v(fd, 'status') as 'ACTIVE' | 'ARCHIVED'); } catch { go(slug, 'error=subject-status'); } go(slug, 'message=subject-status'); }
+export async function createSectionAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const x = await context(fd); await createSection(x.context, { academicYearId: v(fd, 'academicYearId'), classId: v(fd, 'classId'), name: v(fd, 'name'), capacity: v(fd, 'capacity') || undefined }); } catch { go(slug, 'error=section'); } go(slug, 'message=section-created'); }
+export async function toggleSectionAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const x = await context(fd); await setSectionStatus(x.context, v(fd, 'id'), v(fd, 'status') as 'ACTIVE' | 'ARCHIVED'); } catch { go(slug, 'error=section-status'); } go(slug, 'message=section-status'); }
+export async function createClassSubjectAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const x = await context(fd); await createClassSubject(x.context, { academicYearId: v(fd, 'academicYearId'), classId: v(fd, 'classId'), subjectId: v(fd, 'subjectId'), maxMarks: v(fd, 'maxMarks') || undefined, passMarks: v(fd, 'passMarks') || undefined }); } catch { go(slug, 'error=mapping'); } go(slug, 'message=mapping-created'); }

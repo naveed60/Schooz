@@ -66,6 +66,44 @@ function assertTenantStorageAccess(context: SchoolContext, schoolId: string, sto
   }
 }
 
+function assertPrivateKeyPrefix(storageKey: string, allowedPrefix: string) {
+  if (!allowedPrefix || !storageKey.startsWith(`${allowedPrefix.replace(/\/$/, '')}/`)) {
+    throw new AuthorizationError();
+  }
+}
+
+export function generateApplicationStorageKey(
+  applicationId: string,
+  metadata: UploadMetadata,
+  objectId = randomUUID()
+) {
+  const extension = metadata.originalName.includes('.')
+    ? metadata.originalName.split('.').pop()!.toLowerCase().replace(/[^a-z0-9]/g, '')
+    : 'bin';
+  return `school-applications/${applicationId}/${objectId}.${extension || 'bin'}`;
+}
+
+export async function uploadPrivateObjectAtKey({
+  storageKey,
+  allowedPrefix,
+  file,
+  metadata,
+}: {
+  storageKey: string;
+  allowedPrefix: string;
+  file: Blob | ArrayBuffer | Uint8Array;
+  metadata: UploadMetadata;
+}) {
+  assertPrivateKeyPrefix(storageKey, allowedPrefix);
+  const validMetadata = validateUploadMetadata(metadata);
+  const config = storageConfig();
+  const { error } = await createPrivateStorageClient()
+    .storage.from(config.bucket)
+    .upload(storageKey, file, { contentType: validMetadata.contentType, upsert: false });
+  if (error) throw new Error('PRIVATE_STORAGE_UPLOAD_FAILED');
+  return { storageKey, metadata: validMetadata };
+}
+
 export async function uploadPrivateObject({
   context,
   file,
@@ -102,6 +140,32 @@ export async function createAuthorizedDownloadUrl({
   storage?: { client: SupabaseClient; bucket: string };
 }) {
   assertTenantStorageAccess(context, schoolId, storageKey);
+  if (!Number.isInteger(expiresInSeconds) || expiresInSeconds < 1 || expiresInSeconds > 900) {
+    throw new ValidationError('Signed URL expiration must be between 1 and 900 seconds.');
+  }
+  const config = storage ?? storageConfig();
+  const { data, error } = await (storage?.client ?? createPrivateStorageClient())
+    .storage.from(config.bucket)
+    .createSignedUrl(storageKey, expiresInSeconds);
+  if (error || !data?.signedUrl) throw new Error('PRIVATE_STORAGE_SIGNED_URL_FAILED');
+  return data.signedUrl;
+}
+
+export async function createAuthorizedPrivateDownloadUrl({
+  storageKey,
+  allowedPrefix,
+  authorize,
+  expiresInSeconds = 300,
+  storage,
+}: {
+  storageKey: string;
+  allowedPrefix: string;
+  authorize: () => Promise<boolean>;
+  expiresInSeconds?: number;
+  storage?: { client: SupabaseClient; bucket: string };
+}) {
+  assertPrivateKeyPrefix(storageKey, allowedPrefix);
+  if (!(await authorize())) throw new AuthorizationError();
   if (!Number.isInteger(expiresInSeconds) || expiresInSeconds < 1 || expiresInSeconds > 900) {
     throw new ValidationError('Signed URL expiration must be between 1 and 900 seconds.');
   }

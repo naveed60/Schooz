@@ -12,6 +12,7 @@ import {
 } from '../../../src/server/jobs/processor';
 import { createLogger } from '../../../src/server/observability/logger';
 import { getRequestId } from '../../../src/server/observability/request';
+import { dispatchPendingOutbox } from '../../../src/server/jobs/outbox';
 
 const logger = createLogger(getRequestId());
 const POLL_INTERVAL_MS = 1000;
@@ -48,6 +49,10 @@ async function dispatch(job: JobEnvelope) {
   switch (job.type) {
     case 'TEST_NOOP':
       return;
+    case 'SCHOOL_APPROVED_NOTIFICATION':
+      // Email/provider delivery is intentionally deferred; the durable outbox
+      // event has still been dispatched and acknowledged exactly once.
+      return;
     default:
       throw new Error(`UNSUPPORTED_JOB_TYPE:${job.type}`);
   }
@@ -73,6 +78,7 @@ async function handleMessage(message: QueueMessage) {
 export async function runWorker() {
   while (!stopping) {
     try {
+      await dispatchPendingOutbox(10);
       const messages = await readJobs(VISIBILITY_TIMEOUT_SECONDS, 10);
       for (const message of messages) await handleMessage(message);
     } catch (error) {

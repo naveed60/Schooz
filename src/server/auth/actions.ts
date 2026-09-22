@@ -40,6 +40,12 @@ export async function registerAction(formData: FormData) {
   });
 
   if (error || !data.user) redirect('/register?error=generic');
+  // Supabase intentionally masks account existence. An empty identities array
+  // means signUp matched an existing auth user, so do not falsely report a
+  // brand-new verification email.
+  if (data.user.identities?.length === 0) {
+    redirect('/login?error=already-registered');
+  }
   if (data.session)
     await syncUserProfile(data.user, Boolean(data.user.email_confirmed_at));
   redirect('/login?message=check-email');

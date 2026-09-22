@@ -1,6 +1,7 @@
 import 'server-only';
 
 import type { MembershipRole } from '@prisma/client';
+import { cache } from 'react';
 import { prisma } from '@schooz/database';
 import { requireAuthenticatedUser } from '../auth/profile';
 import {
@@ -29,6 +30,7 @@ export class AuthorizationError extends Error {
 export type SchoolContext = {
   schoolId: string;
   schoolSlug: string;
+  schoolName?: string;
   userId: string;
   membershipId: string;
   role: MembershipRole;
@@ -40,8 +42,8 @@ type AuthorizationDb = {
   school: {
     findUnique(args: {
       where: { slug: string };
-      select: { id: true; slug: true; status: true };
-    }): Promise<{ id: string; slug: string; status: string } | null>;
+      select: { id: true; slug: true; name?: true; status: true };
+    }): Promise<{ id: string; slug: string; name?: string; status: string } | null>;
   };
   schoolMembership: {
     findFirst(args: {
@@ -87,7 +89,7 @@ export async function resolveSchoolContext({
 
   const school = await db.school.findUnique({
     where: { slug },
-    select: { id: true, slug: true, status: true },
+    select: { id: true, slug: true, name: true, status: true },
   });
   if (!school) throw new AuthorizationError('SCHOOL_NOT_FOUND');
   if (school.status !== 'ACTIVE') {
@@ -107,12 +109,18 @@ export async function resolveSchoolContext({
   return {
     schoolId: school.id,
     schoolSlug: school.slug,
+    schoolName: school.name,
     userId: account.profile.id,
     membershipId: membership.id,
     role: membership.role,
     permissions: permissionsForRole(membership.role),
   };
 }
+
+/** Request-level composition lets the tenant layout and child page share one context lookup. */
+export const resolveSchoolContextCached = cache((slug: string) =>
+  resolveSchoolContext({ slug })
+);
 
 export function requireSchoolMembership(context: SchoolContext) {
   if (!context.schoolId || !context.userId || !context.membershipId) {

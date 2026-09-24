@@ -47,3 +47,4 @@ CREATE INDEX "student_enrollments_schoolId_academicYearId_classId_sectionId_idx"
 CREATE INDEX "student_enrollments_schoolId_studentId_academicYearId_idx" ON "student_enrollments"("schoolId", "studentId", "academicYearId");
 CREATE INDEX "student_enrollments_schoolId_academicYearId_status_idx" ON "student_enrollments"("schoolId", "academicYearId", "status");
 CREATE UNIQUE INDEX "student_enrollments_one_active_per_year_idx" ON "student_enrollments"("studentId", "academicYearId") WHERE "status" = 'ACTIVE';
+ALTER TABLE "students" ALTER COLUMN "dateOfBirth" SET NOT NULL;

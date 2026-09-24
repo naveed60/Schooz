@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { ValidationError } from '../errors';
 import { createApplicationDraft, submitApplication, updateApplicationDraft, uploadApplicationDocument } from './service';
 
 function value(formData: FormData, name: string) {
@@ -32,9 +33,9 @@ export async function createApplicationDraftAction(formData: FormData) {
   try {
     application = await createApplicationDraft(applicationInput(formData));
   } catch {
-    redirect('/onboarding?error=invalid');
+    redirect('/onboarding?error=invalid#start-application');
   }
-  redirect(`/onboarding/${application.id}?message=draft-saved` as never);
+  redirect(`/onboarding/${application.id}?message=draft-saved#application-details` as never);
 }
 
 export async function updateApplicationDraftAction(formData: FormData) {
@@ -42,9 +43,9 @@ export async function updateApplicationDraftAction(formData: FormData) {
   try {
     await updateApplicationDraft(applicationId, applicationInput(formData));
   } catch {
-    redirect(`/onboarding/${applicationId}?error=invalid` as never);
+    redirect(`/onboarding/${applicationId}?error=invalid#application-details` as never);
   }
-  redirect(`/onboarding/${applicationId}?message=draft-saved` as never);
+  redirect(`/onboarding/${applicationId}?message=draft-saved#application-details` as never);
 }
 
 export async function submitApplicationAction(formData: FormData) {
@@ -52,7 +53,7 @@ export async function submitApplicationAction(formData: FormData) {
   try {
     await submitApplication(applicationId);
   } catch {
-    redirect(`/onboarding/${applicationId}?error=not-submitted` as never);
+    redirect(`/onboarding/${applicationId}?error=not-submitted#submit-application` as never);
   }
   redirect(`/onboarding/${applicationId}?message=submitted` as never);
 }
@@ -62,7 +63,7 @@ export async function uploadApplicationDocumentAction(formData: FormData) {
   const documentType = value(formData, 'documentType');
   const file = formData.get('file');
   if (!(file instanceof File) || file.size === 0) {
-    redirect(`/onboarding/${applicationId}?error=invalid-file` as never);
+    redirect(`/onboarding/${applicationId}?error=invalid-file#verification-documents` as never);
   }
   try {
     await uploadApplicationDocument({
@@ -75,8 +76,16 @@ export async function uploadApplicationDocumentAction(formData: FormData) {
         sizeBytes: file.size,
       },
     });
-  } catch {
-    redirect(`/onboarding/${applicationId}?error=invalid-file` as never);
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[onboarding] document upload failed:', error instanceof Error ? error.message : 'unknown error');
+    }
+    const reason = error instanceof ValidationError
+      ? 'invalid-file'
+      : error instanceof Error && error.message === 'PRIVATE_STORAGE_NOT_CONFIGURED'
+        ? 'storage-unavailable'
+        : 'upload-failed';
+    redirect(`/onboarding/${applicationId}?error=${reason}#verification-documents` as never);
   }
-  redirect(`/onboarding/${applicationId}?message=document-uploaded` as never);
+  redirect(`/onboarding/${applicationId}?message=document-uploaded#verification-documents` as never);
 }

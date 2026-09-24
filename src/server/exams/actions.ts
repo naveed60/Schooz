@@ -1,0 +1,10 @@
+'use server';
+import { redirect } from 'next/navigation';
+import { contextForSchoolSlug } from '../settings/service';
+import { createExam, createGradingScheme, createSchedule, setExamStatus } from './service';
+const v = (fd: FormData, key: string) => { const x = fd.get(key); return typeof x === 'string' ? x : ''; };
+const fail = (slug: string): never => redirect(`/s/${slug}/exams?error=action-failed` as never);
+export async function createExamAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const c = await contextForSchoolSlug(slug); await createExam(c, { academicYearId:v(fd,'academicYearId'), name:v(fd,'name'), examType:v(fd,'examType'), startDate:v(fd,'startDate'), endDate:v(fd,'endDate') }); } catch { fail(slug); } redirect(`/s/${slug}/exams?message=created` as never); }
+export async function setExamStatusAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const c = await contextForSchoolSlug(slug); await setExamStatus(c, v(fd,'examId'), v(fd,'status') as 'DRAFT'|'SCHEDULED'|'ONGOING'|'COMPLETED'|'RESULTS_PUBLISHED'|'ARCHIVED'); } catch { fail(slug); } redirect(`/s/${slug}/exams?message=status-updated` as never); }
+export async function createScheduleAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const c = await contextForSchoolSlug(slug); await createSchedule(c, { examId:v(fd,'examId'), classId:v(fd,'classId'), subjectId:v(fd,'subjectId'), examDate:v(fd,'examDate'), startTime:v(fd,'startTime'), endTime:v(fd,'endTime'), room:v(fd,'room') || undefined, maxMarks:v(fd,'maxMarks'), passMarks:v(fd,'passMarks'), instructions:v(fd,'instructions') || undefined }); } catch { fail(slug); } redirect(`/s/${slug}/exams?message=scheduled` as never); }
+export async function createGradingSchemeAction(fd: FormData) { const slug = v(fd, 'schoolSlug'); try { const c = await contextForSchoolSlug(slug); const items = JSON.parse(v(fd,'items')) as unknown; await createGradingScheme(c, { name:v(fd,'name'), isDefault:fd.get('isDefault') === 'on', items }); } catch { fail(slug); } redirect(`/s/${slug}/exams?message=grading-created` as never); }

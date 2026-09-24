@@ -1,0 +1,7 @@
+
+vi.mock('server-only', () => ({}));
+import { describe, expect, it, vi } from 'vitest';
+import { getExam, createSchedule, listExams } from './service';
+const context = { schoolId:'school-a', schoolSlug:'a', userId:'u', membershipId:'m', role:'SCHOOL_OWNER' as const, permissions:['exams:read','exams:manage','exams/results:manage'] as const };
+const id = '00000000-0000-4000-8000-000000000001';
+describe('exam tenant scope', () => { it('paginates exam list by school', async () => { let args: { where: { schoolId: string }; skip:number; take:number } | undefined; const db = { exam:{findMany:async (x: typeof args) => { args=x; return []; }} } as never; await listExams(context,{page:2,pageSize:10},db); expect(args!.where.schoolId).toBe('school-a'); expect(args!.skip).toBe(10); }); it('rejects another-school exam detail', async () => { const db = { exam:{findFirst:async()=>null} } as never; await expect(getExam(context,id,db)).rejects.toMatchObject({code:'NOT_FOUND'}); }); it('rejects cross-tenant schedule references', async () => { const db = { exam:{findFirst:async()=>null}, academicClass:{findFirst:async()=>({})}, subject:{findFirst:async()=>({})}, classSubject:{findFirst:async()=>({})}, examSchedule:{create:vi.fn()} } as never; await expect(createSchedule(context,{examId:id,classId:id,subjectId:id,examDate:'2026-01-02',startTime:'09:00',endTime:'10:00',maxMarks:100,passMarks:40},db)).rejects.toMatchObject({code:'NOT_FOUND'}); }); });

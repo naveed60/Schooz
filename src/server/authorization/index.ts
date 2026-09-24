@@ -37,7 +37,7 @@ export type SchoolContext = {
   permissions: readonly SchoolPermission[];
 };
 
-type AuthAccount = Awaited<ReturnType<typeof requireAuthenticatedUser>>;
+type AuthAccount = Pick<Awaited<ReturnType<typeof requireAuthenticatedUser>>, 'profile'>;
 type AuthorizationDb = {
   school: {
     findUnique(args: {

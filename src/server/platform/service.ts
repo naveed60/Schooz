@@ -4,13 +4,13 @@ import { prisma } from '@schooz/database';
 import { Prisma, type SchoolApplicationStatus } from '@prisma/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { requirePlatformAdmin } from '../authorization';
-import { requireAuthenticatedUser } from '../auth/profile';
+import { requireAuthenticatedClaimsUser, requireAuthenticatedUser } from '../auth/profile';
 import { auditService } from '../audit';
 import { ConflictError, BusinessRuleError, NotFoundError } from '../errors';
 import { createAuthorizedPrivateDownloadUrl } from '../storage';
 import { assertReviewTransition } from './state';
 
-type AuthAccount = Awaited<ReturnType<typeof requireAuthenticatedUser>>;
+type AuthAccount = Pick<Awaited<ReturnType<typeof requireAuthenticatedUser>>, 'profile'>;
 type PlatformDb = Pick<typeof prisma, 'schoolApplication' | 'schoolApplicationDocument' | 'school' | 'schoolMembership' | 'notificationOutbox' | '$transaction'>;
 type Storage = { client: SupabaseClient; bucket: string };
 
@@ -55,15 +55,63 @@ const applicationListSelect = {
   applicant: { select: { email: true, firstName: true, lastName: true } },
 } satisfies Prisma.SchoolApplicationSelect;
 
+const schoolListSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  email: true,
+  phone: true,
+  city: true,
+  countryCode: true,
+  status: true,
+} satisfies Prisma.SchoolSelect;
+
 async function requireAdmin(getAccount: () => Promise<AuthAccount> = requireAuthenticatedUser) {
   return requirePlatformAdmin(getAccount);
+}
+
+export async function getPlatformDashboard({
+  getAccount = requireAuthenticatedClaimsUser,
+  db = prisma,
+}: {
+  getAccount?: () => Promise<AuthAccount>;
+  db?: PlatformDb;
+} = {}) {
+  const started = performance.now();
+  await requireAdmin(getAccount);
+  const authorized = performance.now();
+  const [applications, schools, applicationCounts, schoolCount] = await Promise.all([
+    db.schoolApplication.findMany({
+      select: applicationListSelect,
+      orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
+      take: 6,
+    }),
+    db.school.findMany({
+      select: schoolListSelect,
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+    }),
+    db.schoolApplication.groupBy({ by: ['status'], _count: { _all: true } }),
+    db.school.count(),
+  ]);
+  if (process.env.NODE_ENV === 'development') {
+    console.info(`[timing] platform dashboard: auth ${Math.round(authorized - started)}ms, data ${Math.round(performance.now() - authorized)}ms`);
+  }
+  return {
+    applications,
+    schools,
+    applicationCount: applicationCounts.reduce((total, group) => total + group._count._all, 0),
+    submittedCount: applicationCounts.find(group => group.status === 'SUBMITTED')?._count._all ?? 0,
+    reviewCount: applicationCounts.find(group => group.status === 'UNDER_REVIEW')?._count._all ?? 0,
+    schoolCount,
+  };
 }
 
 export async function listPlatformApplications({
   status,
   page = 1,
   pageSize = 20,
-  getAccount = requireAuthenticatedUser,
+  getAccount = requireAuthenticatedClaimsUser,
   db = prisma,
 }: {
   status?: SchoolApplicationStatus;
@@ -72,7 +120,9 @@ export async function listPlatformApplications({
   getAccount?: () => Promise<AuthAccount>;
   db?: PlatformDb;
 }) {
+  const started = performance.now();
   const admin = await requireAdmin(getAccount);
+  const authorized = performance.now();
   const safePage = Math.max(1, Math.floor(page));
   const safePageSize = Math.min(100, Math.max(1, Math.floor(pageSize)));
   const where = status ? { status } : {};
@@ -86,6 +136,9 @@ export async function listPlatformApplications({
     }),
     db.schoolApplication.count({ where }),
   ]);
+  if (process.env.NODE_ENV === 'development') {
+    console.info(`[timing] platform applications: auth ${Math.round(authorized - started)}ms, data ${Math.round(performance.now() - authorized)}ms`);
+  }
   return { items, total, page: safePage, pageSize: safePageSize, adminUserId: admin.profile.id };
 }
 
@@ -290,14 +343,19 @@ const schoolSelect = {
   sourceApplicationId: true,
 } satisfies Prisma.SchoolSelect;
 
-export async function listPlatformSchools({ page = 1, pageSize = 20, getAccount = requireAuthenticatedUser, db = prisma }: { page?: number; pageSize?: number; getAccount?: () => Promise<AuthAccount>; db?: PlatformDb }) {
+export async function listPlatformSchools({ page = 1, pageSize = 20, getAccount = requireAuthenticatedClaimsUser, db = prisma }: { page?: number; pageSize?: number; getAccount?: () => Promise<AuthAccount>; db?: PlatformDb }) {
+  const started = performance.now();
   await requireAdmin(getAccount);
+  const authorized = performance.now();
   const safePage = Math.max(1, Math.floor(page));
   const safePageSize = Math.min(100, Math.max(1, Math.floor(pageSize)));
   const [items, total] = await Promise.all([
-    db.school.findMany({ select: schoolSelect, orderBy: { createdAt: 'desc' }, skip: (safePage - 1) * safePageSize, take: safePageSize }),
+    db.school.findMany({ select: schoolListSelect, orderBy: { createdAt: 'desc' }, skip: (safePage - 1) * safePageSize, take: safePageSize }),
     db.school.count(),
   ]);
+  if (process.env.NODE_ENV === 'development') {
+    console.info(`[timing] platform schools: auth ${Math.round(authorized - started)}ms, data ${Math.round(performance.now() - authorized)}ms`);
+  }
   return { items, total, page: safePage, pageSize: safePageSize };
 }
 

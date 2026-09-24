@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { prisma } from '@schooz/database';
 import { getAuthConfig } from './config';
 import { getSafeRedirectPath } from './redirects';
 import { createSupabaseServerClient } from './supabase-server';
@@ -61,7 +62,11 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=invalid&next=${encodeURIComponent(next)}`);
 
   const supabase = await createSupabaseServerClient();
+  // Open the remote database connection while Supabase verifies the password.
+  const databaseReady = prisma.$connect().then(() => null, (error: unknown) => error);
+  const signInStarted = performance.now();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  const signInFinished = performance.now();
   if (error || !data.user)
     redirect(`/login?error=invalid&next=${encodeURIComponent(next)}`);
   if (!data.user.email_confirmed_at) {
@@ -69,10 +74,16 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=unverified&next=${encodeURIComponent(next)}`);
   }
 
+  const databaseWaitStarted = performance.now();
+  const connectionError = await databaseReady;
+  if (connectionError) throw connectionError;
+  const databaseReadyAt = performance.now();
   const profile = await syncUserProfile(data.user, true);
+  if (process.env.NODE_ENV === 'development') {
+    console.info(`[timing] login: Supabase ${Math.round(signInFinished - signInStarted)}ms, database wait ${Math.round(databaseReadyAt - databaseWaitStarted)}ms, profile ${Math.round(performance.now() - databaseReadyAt)}ms`);
+  }
   if ((next === '/' || next === '/platform') && profile.platformRole === 'PLATFORM_ADMIN') redirect('/platform' as never);
   if (next === '/' || next === '/platform') {
-    const { prisma } = await import('@schooz/database');
     const membership = await prisma.schoolMembership.findFirst({
       where: { userId: data.user.id, status: 'ACTIVE' },
       orderBy: { createdAt: 'asc' },

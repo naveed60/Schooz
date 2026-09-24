@@ -36,15 +36,38 @@ const profileSelect = {
   status: true,
 } as const;
 
-/** Cache authentication for the duration of one server render. */
+/** Live Auth lookup for actions that change data or require a current user record. */
 export const requireAuthenticatedUser = cache(async () => {
   const supabase = await createSupabaseServerClient();
+  const authStarted = performance.now();
   const { data, error } = await supabase.auth.getUser();
+  const authFinished = performance.now();
   if (error || !data.user) throw new Error('UNAUTHENTICATED');
 
-  // Login and callback perform profile synchronization. Read-only pages only
-  // need the existing profile and must not write on every navigation.
   let profile = await prisma.userProfile.findUnique({ where: { id: data.user.id }, select: profileSelect });
   if (!profile) profile = await syncUserProfile(data.user, Boolean(data.user.email_confirmed_at));
+  if (process.env.NODE_ENV === 'development') {
+    console.info(`[timing] session: Supabase ${Math.round(authFinished - authStarted)}ms, profile ${Math.round(performance.now() - authFinished)}ms`);
+  }
   return { identity: data.user, profile };
+});
+
+/** Signed claims and a current database role for read-only platform pages. */
+export const requireAuthenticatedClaimsUser = cache(async () => {
+  const supabase = await createSupabaseServerClient();
+  const authStarted = performance.now();
+  const { data, error } = await supabase.auth.getClaims();
+  const authFinished = performance.now();
+  if (error || !data?.claims?.sub) throw new Error('UNAUTHENTICATED');
+
+  let profile = await prisma.userProfile.findUnique({ where: { id: data.claims.sub }, select: profileSelect });
+  if (!profile) {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user || userData.user.id !== data.claims.sub) throw new Error('UNAUTHENTICATED');
+    profile = await syncUserProfile(userData.user, Boolean(userData.user.email_confirmed_at));
+  }
+  if (process.env.NODE_ENV === 'development') {
+    console.info(`[timing] session: claims ${Math.round(authFinished - authStarted)}ms, profile ${Math.round(performance.now() - authFinished)}ms`);
+  }
+  return { profile };
 });

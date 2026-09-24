@@ -21,10 +21,15 @@ repeat for a session refresh or callback retry.
 ## Redirects and protection
 
 Auth redirects accept only same-origin relative paths. External and
-protocol-relative values fall back to `/platform`, preventing open redirects.
-Middleware refreshes the Supabase session and redirects unauthenticated users
-away from `/platform`. This is authentication protection only; platform roles,
-school memberships, and tenant authorization are deferred.
+protocol-relative values fall back to `/`, preventing open redirects.
+Read-only platform pages verify Supabase access-token claims with `getClaims()`.
+The project's asymmetric signing key allows local verification after the public
+key is cached; expired tokens are refreshed by the Supabase client. Platform
+roles still come from Prisma on each request. Mutating services and the profile
+page use `getUser()` to fetch the current Auth user. A missing application
+profile also falls back to a live Auth lookup. Read-only platform pages can
+accept an unexpired access token after its server session is revoked; mutations
+still require a live Auth check.
 
 ## Local configuration
 

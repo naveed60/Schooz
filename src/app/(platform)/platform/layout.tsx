@@ -1,4 +1,5 @@
 import { forbidden, redirect } from 'next/navigation';
+import { requireAuthenticatedClaimsUser } from '@/server/auth/profile';
 import {
   AuthorizationError,
   requirePlatformAdmin,
@@ -10,7 +11,7 @@ export default async function PlatformLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   try {
-    await requirePlatformAdmin();
+    await requirePlatformAdmin(requireAuthenticatedClaimsUser);
   } catch (error) {
     if (
       error instanceof AuthorizationError &&

@@ -10,6 +10,9 @@ export const PERMISSIONS = {
   TEACHERS_MANAGE: 'teachers:manage',
   ACADEMICS_READ: 'academics:read',
   ACADEMICS_MANAGE: 'academics:manage',
+  EXAMS_READ: 'exams:read',
+  EXAMS_MANAGE: 'exams:manage',
+  RESULTS_MANAGE: 'results:manage',
   EXAMS_RESULTS_READ: 'exams/results:read',
   EXAMS_RESULTS_MANAGE: 'exams/results:manage',
   FEES_PAYMENTS_READ: 'fees/payments:read',
@@ -32,6 +35,8 @@ export const ROLE_PERMISSIONS: Readonly<Record<MembershipRole, readonly SchoolPe
     ...readOnlyPermissions,
     PERMISSIONS.TEACHERS_MANAGE,
     PERMISSIONS.ACADEMICS_MANAGE,
+    PERMISSIONS.EXAMS_MANAGE,
+    PERMISSIONS.RESULTS_MANAGE,
     PERMISSIONS.EXAMS_RESULTS_MANAGE,
   ],
   ACCOUNTANT: [

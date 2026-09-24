@@ -5,4 +5,7 @@ export const studentSchema = z.object({ admissionNumber: z.string().trim().min(1
 export const guardianSchema = z.object({ firstName: z.string().trim().min(1).max(100), lastName: z.string().trim().min(1).max(100), email: z.string().email().optional(), phone: z.string().trim().min(7).max(40), alternatePhone: z.string().trim().max(40).optional(), occupation: z.string().trim().max(120).optional(), address: z.string().trim().max(500).optional() });
 export const guardianLinkSchema = z.object({ studentId: id, guardianId: id, relationship: z.string().trim().min(1).max(60), isPrimary: z.boolean().default(false), receivesNotifications: z.boolean().default(true), canPickup: z.boolean().default(false) });
 export const enrollmentSchema = z.object({ studentId: id, academicYearId: id, classId: id, sectionId: id, rollNumber: z.string().trim().max(40).optional(), enrollmentDate: date });
+export const initialEnrollmentSchema = enrollmentSchema.omit({ studentId: true });
+export const studentCreateSchema = studentSchema.extend({ initialEnrollment: initialEnrollmentSchema.optional() });
+export const studentUpdateSchema = studentSchema.omit({ admissionNumber: true }).partial();
 export type StudentInput = z.infer<typeof studentSchema>;

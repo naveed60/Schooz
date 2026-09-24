@@ -1,0 +1,3 @@
+import { ConflictError } from '../errors';
+export type ExamStatus = 'DRAFT' | 'SCHEDULED' | 'ONGOING' | 'COMPLETED' | 'RESULTS_PUBLISHED' | 'ARCHIVED';
+export function assertExamStatusTransition(from: ExamStatus, to: ExamStatus) { const allowed: Record<ExamStatus, ExamStatus[]> = { DRAFT: ['SCHEDULED', 'ARCHIVED'], SCHEDULED: ['ONGOING', 'ARCHIVED'], ONGOING: ['COMPLETED'], COMPLETED: ['RESULTS_PUBLISHED', 'ARCHIVED'], RESULTS_PUBLISHED: ['ARCHIVED'], ARCHIVED: [] }; if (from !== to && !allowed[from].includes(to)) throw new ConflictError(`Cannot change exam from ${from} to ${to}.`); if (to === 'RESULTS_PUBLISHED') throw new ConflictError('Results publication is owned by the results workflow.'); }

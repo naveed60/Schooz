@@ -15,6 +15,12 @@ const uploadMetadataSchema = z.object({
     'image/png',
     'image/webp',
     'text/plain',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   ]),
   sizeBytes: z.number().int().positive().max(25 * 1024 * 1024),
   originalName: z.string().trim().min(1).max(180).refine(name => !/[\\/\0]/.test(name), 'Invalid file name'),
@@ -175,4 +181,11 @@ export async function createAuthorizedPrivateDownloadUrl({
     .createSignedUrl(storageKey, expiresInSeconds);
   if (error || !data?.signedUrl) throw new Error('PRIVATE_STORAGE_SIGNED_URL_FAILED');
   return data.signedUrl;
+}
+
+export async function deletePrivateObjectAtKey({ storageKey, allowedPrefix }: { storageKey: string; allowedPrefix: string }) {
+  assertPrivateKeyPrefix(storageKey, allowedPrefix);
+  const config = storageConfig();
+  const { error } = await createPrivateStorageClient().storage.from(config.bucket).remove([storageKey]);
+  if (error) throw new Error('PRIVATE_STORAGE_DELETE_FAILED');
 }

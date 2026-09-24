@@ -42,7 +42,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           {message && <p className='form-message' role='status'>{message}</p>}
           {error && <p className='form-error' role='alert'>{error}</p>}
           <form className='auth-form' action={loginAction}>
-            <input type='hidden' name='next' value={params.next ?? '/platform'} />
+            <input type='hidden' name='next' value={params.next ?? '/'} />
             <label htmlFor='email'>School email</label>
             <input id='email' name='email' type='email' autoComplete='email' placeholder='you@school.edu' required />
             <div className='label-row'><label htmlFor='password'>Password</label><Link href='/forgot-password'>Forgot password?</Link></div>

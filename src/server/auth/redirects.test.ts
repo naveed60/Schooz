@@ -9,7 +9,7 @@ describe('safe auth redirects', () => {
   });
 
   it('rejects external and protocol-relative URLs', () => {
-    expect(getSafeRedirectPath('https://evil.example')).toBe('/platform');
-    expect(getSafeRedirectPath('//evil.example')).toBe('/platform');
+    expect(getSafeRedirectPath('https://evil.example')).toBe('/');
+    expect(getSafeRedirectPath('//evil.example')).toBe('/');
   });
 });

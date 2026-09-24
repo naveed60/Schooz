@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { PlatformChrome } from '@/components/platform';
 import {
   approveApplicationAction,
   downloadApplicationDocumentAction,
@@ -18,7 +19,7 @@ export default async function PlatformApplicationDetailPage({
   if (!result) notFound();
   const { application } = result;
   return (
-    <main className='shell'>
+    <PlatformChrome active='applications'>
       <p><Link href={'/platform/applications' as never}>← Applications</Link></p>
       <h1>{application.schoolName}</h1>
       <p>Status: <strong>{application.status}</strong></p>
@@ -47,6 +48,6 @@ export default async function PlatformApplicationDetailPage({
         <form action={rejectApplicationAction}><input type='hidden' name='applicationId' value={application.id} /><textarea name='rejectionReason' placeholder='Required rejection reason' required /><button type='submit'>Reject</button></form>
         <form action={approveApplicationAction}><input type='hidden' name='applicationId' value={application.id} /><button type='submit'>Approve and provision school</button></form>
       </section>
-    </main>
+    </PlatformChrome>
   );
 }

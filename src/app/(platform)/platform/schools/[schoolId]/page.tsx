@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { PlatformChrome } from '@/components/platform';
 import { reactivateSchoolAction, suspendSchoolAction } from '@/server/platform/actions';
 import { getPlatformSchool } from '@/server/platform/service';
 
@@ -11,7 +12,7 @@ export default async function PlatformSchoolDetailPage({
   try { school = await getPlatformSchool(schoolId); } catch { notFound(); }
   if (!school) notFound();
   return (
-    <main className='shell'>
+    <PlatformChrome active='schools'>
       <p><Link href={'/platform/schools' as never}>← Schools</Link></p>
       <h1>{school.name}</h1>
       <p>Status: <strong>{school.status}</strong></p>
@@ -20,6 +21,6 @@ export default async function PlatformSchoolDetailPage({
       <p>Address: {school.addressLine1}, {school.city}, {school.stateOrRegion}, {school.countryCode}</p>
       {school.status === 'ACTIVE' && <form action={suspendSchoolAction}><input type='hidden' name='schoolId' value={school.id} /><button type='submit'>Suspend school</button></form>}
       {school.status === 'SUSPENDED' && <form action={reactivateSchoolAction}><input type='hidden' name='schoolId' value={school.id} /><button type='submit'>Reactivate school</button></form>}
-    </main>
+    </PlatformChrome>
   );
 }

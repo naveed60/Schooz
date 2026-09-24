@@ -5,12 +5,12 @@ import { listMyApplications } from '@/server/onboarding/service';
 export default async function OnboardingPage() {
   const applications = await listMyApplications();
   return (
-    <main className='shell'>
-      <p className='eyebrow'>School onboarding</p>
+    <main className='onboarding-page'><div className='onboarding-wrap'><nav className='onboarding-nav'><Link className='brand' href='/'><span className='brand-mark'>S</span><span>Schooz</span></Link><Link className='onboarding-exit' href='/'>Exit onboarding <span>↗</span></Link></nav>
+      <header className='onboarding-header'><div><p className='eyebrow'>School onboarding</p>
       <h1>Register a school</h1>
-      <p>Submit your school details and verification documents. Submission does not create a school account or dashboard access.</p>
+      <p className='onboarding-lede'>Tell us about your school. We&apos;ll review your details and guide you through verification before access is created.</p></div><div className='onboarding-progress'><span>01</span><i></i><span>02</span></div></header>
 
-      <section>
+      <section className='onboarding-section'>
         <h2>Your applications</h2>
         {applications.length === 0 ? <p>No applications yet.</p> : applications.map(application => (
           <article key={application.id}>
@@ -22,9 +22,9 @@ export default async function OnboardingPage() {
         ))}
       </section>
 
-      <section>
+      <section className='onboarding-section'>
         <h2>Start an application</h2>
-        <form action={createApplicationDraftAction} className='auth-form'>
+        <form action={createApplicationDraftAction} className='auth-form onboarding-form'><div className='onboarding-form-heading'><div><p className='eyebrow'>Step one</p><h2>School profile</h2></div><span>Save anytime</span></div><div className='onboarding-fields'>
           <input name='schoolName' placeholder='School name' required />
           <input name='legalName' placeholder='Legal name (optional)' />
           <input name='registrationNumber' placeholder='Registration number (optional)' />
@@ -39,9 +39,9 @@ export default async function OnboardingPage() {
           <input name='postalCode' placeholder='Postal code (optional)' />
           <input name='countryCode' placeholder='Country code, e.g. PK' maxLength={2} required />
           <input name='principalName' placeholder='Principal name (optional)' />
-          <button type='submit'>Save draft</button>
+          </div><button className='button onboarding-submit' type='submit'>Save and continue <span>→</span></button>
         </form>
       </section>
-    </main>
+    </div></main>
   );
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 
-import { listPlatformApplications, approveApplication } from './service';
+import { listPlatformApplications, getPlatformDashboard, approveApplication } from './service';
 
 const admin = () => Promise.resolve({ profile: { id: 'admin-a', platformRole: 'PLATFORM_ADMIN' } } as never);
 const normalUser = () => Promise.resolve({ profile: { id: 'user-a', platformRole: null } } as never);
@@ -12,6 +12,36 @@ describe('platform review and provisioning authorization', () => {
     const db = { schoolApplication: { findMany: async () => { queried = true; return []; }, count: async () => 0 } } as never;
     await expect(listPlatformApplications({ getAccount: normalUser, db })).rejects.toMatchObject({ code: 'PLATFORM_ADMIN_REQUIRED' });
     expect(queried).toBe(false);
+  });
+
+  it('loads dashboard totals with one application count query', async () => {
+    const applicationFindMany = vi.fn().mockResolvedValue([{ id: 'application-a' }]);
+    const applicationGroupBy = vi.fn().mockResolvedValue([
+      { status: 'DRAFT', _count: { _all: 2 } },
+      { status: 'SUBMITTED', _count: { _all: 3 } },
+      { status: 'UNDER_REVIEW', _count: { _all: 1 } },
+    ]);
+    const schoolFindMany = vi.fn().mockResolvedValue([{ id: 'school-a' }]);
+    const schoolCount = vi.fn().mockResolvedValue(4);
+    const db = {
+      schoolApplication: { findMany: applicationFindMany, groupBy: applicationGroupBy },
+      school: { findMany: schoolFindMany, count: schoolCount },
+    } as never;
+
+    const result = await getPlatformDashboard({ getAccount: admin, db });
+
+    expect(result).toMatchObject({
+      applicationCount: 6,
+      submittedCount: 3,
+      reviewCount: 1,
+      schoolCount: 4,
+      applications: [{ id: 'application-a' }],
+      schools: [{ id: 'school-a' }],
+    });
+    expect(applicationFindMany).toHaveBeenCalledOnce();
+    expect(applicationGroupBy).toHaveBeenCalledOnce();
+    expect(schoolFindMany).toHaveBeenCalledOnce();
+    expect(schoolCount).toHaveBeenCalledOnce();
   });
 
   it('provisions exactly once when approval is repeated', async () => {

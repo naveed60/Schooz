@@ -31,7 +31,7 @@ export async function registerAction(formData: FormData) {
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      emailRedirectTo: `${config.APP_URL}/auth/callback?next=/platform`,
+      emailRedirectTo: `${config.APP_URL}/auth/callback?next=/onboarding`,
       data: {
         first_name: parsed.data.firstName,
         last_name: parsed.data.lastName,
@@ -56,7 +56,7 @@ export async function loginAction(formData: FormData) {
     email: value(formData, 'email'),
     password: value(formData, 'password'),
   });
-  const next = getSafeRedirectPath(value(formData, 'next'));
+  const next = getSafeRedirectPath(value(formData, 'next'), '/');
   if (!parsed.success)
     redirect(`/login?error=invalid&next=${encodeURIComponent(next)}`);
 
@@ -69,7 +69,17 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=unverified&next=${encodeURIComponent(next)}`);
   }
 
-  await syncUserProfile(data.user, true);
+  const profile = await syncUserProfile(data.user, true);
+  if ((next === '/' || next === '/platform') && profile.platformRole === 'PLATFORM_ADMIN') redirect('/platform' as never);
+  if (next === '/' || next === '/platform') {
+    const { prisma } = await import('@schooz/database');
+    const membership = await prisma.schoolMembership.findFirst({
+      where: { userId: data.user.id, status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+      select: { school: { select: { slug: true } } },
+    });
+    redirect(membership ? `/s/${membership.school.slug}/dashboard` : '/onboarding' as never);
+  }
   redirect(next as never);
 }
 

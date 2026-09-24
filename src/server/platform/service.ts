@@ -45,6 +45,16 @@ const applicationReviewSelect = {
   },
 } satisfies Prisma.SchoolApplicationSelect;
 
+const applicationListSelect = {
+  id: true,
+  schoolName: true,
+  schoolType: true,
+  countryCode: true,
+  status: true,
+  submittedAt: true,
+  applicant: { select: { email: true, firstName: true, lastName: true } },
+} satisfies Prisma.SchoolApplicationSelect;
+
 async function requireAdmin(getAccount: () => Promise<AuthAccount> = requireAuthenticatedUser) {
   return requirePlatformAdmin(getAccount);
 }
@@ -69,7 +79,7 @@ export async function listPlatformApplications({
   const [items, total] = await Promise.all([
     db.schoolApplication.findMany({
       where,
-      select: applicationReviewSelect,
+      select: applicationListSelect,
       orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
       skip: (safePage - 1) * safePageSize,
       take: safePageSize,

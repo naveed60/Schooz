@@ -14,8 +14,17 @@ export async function GET(request: Request) {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && data.user) {
-      await syncUserProfile(data.user, Boolean(data.user.email_confirmed_at));
-      return NextResponse.redirect(new URL(next, config.APP_URL));
+      const profile = await syncUserProfile(data.user, Boolean(data.user.email_confirmed_at));
+      let destination = next;
+      if (next === '/' || next === '/platform') {
+        if (profile.platformRole === 'PLATFORM_ADMIN') destination = '/platform';
+        else {
+          const { prisma } = await import('@schooz/database');
+          const membership = await prisma.schoolMembership.findFirst({ where: { userId: data.user.id, status: 'ACTIVE' }, orderBy: { createdAt: 'asc' }, select: { school: { select: { slug: true } } } });
+          destination = membership ? `/s/${membership.school.slug}/dashboard` : '/onboarding';
+        }
+      }
+      return NextResponse.redirect(new URL(destination, config.APP_URL));
     }
   }
 

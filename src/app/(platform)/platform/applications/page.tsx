@@ -1,28 +1,15 @@
 import Link from 'next/link';
 import { listPlatformApplications } from '@/server/platform/service';
+import { PlatformBreadcrumb, PlatformChrome } from '@/components/platform';
+import { StatusBadge } from '@/components/tenant';
 
 const statuses = ['SUBMITTED', 'UNDER_REVIEW', 'CHANGES_REQUESTED', 'APPROVED', 'REJECTED'] as const;
 
-export default async function PlatformApplicationsPage({
-  searchParams,
-}: { searchParams: Promise<{ status?: string; page?: string }> }) {
+export default async function PlatformApplicationsPage({ searchParams }: { searchParams: Promise<{ status?: string; page?: string }> }) {
   const params = await searchParams;
   const status = statuses.includes(params.status as (typeof statuses)[number]) ? params.status as (typeof statuses)[number] : undefined;
   const result = await listPlatformApplications({ status, page: Number(params.page) || 1 });
   const pages = Math.max(1, Math.ceil(result.total / result.pageSize));
-  return (
-    <main className='shell'>
-      <h1>School applications</h1>
-      <p><Link href={'/platform' as never}>Platform home</Link> · <Link href={'/platform/schools' as never}>Schools</Link></p>
-      <nav>{statuses.map(option => <Link key={option} href={`/platform/applications?status=${option}` as never}>{option}</Link>)}</nav>
-      {result.items.length === 0 ? <p>No applications found.</p> : <ul>{result.items.map(application => (
-        <li key={application.id}>
-          <Link href={`/platform/applications/${application.id}` as never}>{application.schoolName}</Link> — {application.status} — {application.applicant.email}
-        </li>
-      ))}</ul>}
-      <p>Page {result.page} of {pages}</p>
-      {result.page > 1 && <Link href={`/platform/applications?${status ? `status=${status}&` : ''}page=${result.page - 1}` as never}>Previous</Link>}
-      {result.page < pages && <Link href={`/platform/applications?${status ? `status=${status}&` : ''}page=${result.page + 1}` as never}>Next</Link>}
-    </main>
-  );
+  const query = status ? `status=${status}&` : '';
+  return <PlatformChrome active='applications'><PlatformBreadcrumb current='Applications' /><header className='platform-page-header'><div><p className='eyebrow'>Review queue</p><h1>School applications</h1><p>Review new schools, request changes, and provision approved tenants.</p></div><div className='platform-count'>{result.total}<small>Total applications</small></div></header><section className='platform-panel platform-table-panel'><div className='platform-filter-row'><div><span className='platform-filter-label'>Filter by status</span><nav className='platform-filters'><Link className={!status ? 'active' : ''} href={'/platform/applications' as never}>All</Link>{statuses.map(option => <Link className={status === option ? 'active' : ''} key={option} href={`/platform/applications?status=${option}` as never}>{option.replaceAll('_', ' ')}</Link>)}</nav></div></div>{result.items.length ? <div className='platform-table-wrap'><table className='platform-table'><thead><tr><th>School</th><th>Applicant</th><th>Submitted</th><th>Status</th><th /></tr></thead><tbody>{result.items.map(application => <tr key={application.id}><td><Link className='platform-table-primary' href={`/platform/applications/${application.id}` as never}>{application.schoolName}</Link><span>{application.schoolType} · {application.countryCode}</span></td><td>{application.applicant.firstName} {application.applicant.lastName}<span>{application.applicant.email}</span></td><td>{application.submittedAt ? new Date(application.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Draft'}</td><td><StatusBadge status={application.status} /></td><td><Link className='row-arrow' href={`/platform/applications/${application.id}` as never}>→</Link></td></tr>)}</tbody></table></div> : <div className='platform-empty-state'><strong>No applications found</strong><span>Try another status filter or check back later.</span></div>}<div className='platform-pagination'><span>Page {result.page} of {pages}</span><div>{result.page > 1 && <Link href={`/platform/applications?${query}page=${result.page - 1}` as never}>← Previous</Link>}{result.page < pages && <Link href={`/platform/applications?${query}page=${result.page + 1}` as never}>Next →</Link>}</div></div></section></PlatformChrome>;
 }

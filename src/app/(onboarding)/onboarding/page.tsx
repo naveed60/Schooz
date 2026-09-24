@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { createApplicationDraftAction } from '@/server/onboarding/actions';
 import { listMyApplications } from '@/server/onboarding/service';
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
   const applications = await listMyApplications();
   return (
     <main className='onboarding-page'><div className='onboarding-wrap'><nav className='onboarding-nav'><Link className='brand' href='/'><span className='brand-mark'>S</span><span>Schooz</span></Link><Link className='onboarding-exit' href='/'>Exit onboarding <span>↗</span></Link></nav>
@@ -22,8 +23,9 @@ export default async function OnboardingPage() {
         ))}
       </section>
 
-      <section className='onboarding-section'>
+      <section className='onboarding-section' id='start-application'>
         <h2>Start an application</h2>
+        {error === 'invalid' && <p className='form-error onboarding-feedback' role='alert'>Check the required fields, email, phone, website, and two-letter country code, then try again.</p>}
         <form action={createApplicationDraftAction} className='auth-form onboarding-form'><div className='onboarding-form-heading'><div><p className='eyebrow'>Step one</p><h2>School profile</h2></div><span>Save anytime</span></div><div className='onboarding-fields'>
           <input name='schoolName' placeholder='School name' required />
           <input name='legalName' placeholder='Legal name (optional)' />

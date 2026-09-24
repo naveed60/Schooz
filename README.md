@@ -28,9 +28,12 @@ pnpm prisma:migrate
 pnpm db:seed
 ```
 
-Database credentials and the optional Supabase service-role key are server-only.
-See [docs/database.md](docs/database.md) for the connection and migration
-strategy.
+Database credentials and the Supabase secret key (or legacy service-role key) are server-only.
+Document uploads require `SUPABASE_SERVICE_ROLE_KEY` in the local `.env` and a
+private Supabase Storage bucket named `private-files` (or the name set by
+`SUPABASE_PRIVATE_STORAGE_BUCKET`). Keep the service-role key out of public
+variables and browser code. See [docs/database.md](docs/database.md) for the
+connection and migration strategy.
 
 ## Quality gates
 
